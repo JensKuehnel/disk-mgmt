@@ -194,6 +194,10 @@ case $1 in
      secure-erase)
           secure-erase
           ;;
+     burn-check)
+          secure-erase
+          badblocks-check-empty
+          ;;
      badblocks-check-empty)
           run-command badblocks-check-empty "badblocks -vv -t 00 /dev/$DISK"
           ;;
