@@ -1,0 +1,17 @@
+TODO:
+  smartctl -t long and wait until finished
+  burn-full: secure-erase, badblack-full, smartctl -t long 
+  burn: secure-erase, badblack-once, smartctl -t long
+  burn-short: secure-erase, smartctl -t long
+  check if needed tools are installed
+  avoid eval
+
+Ideas:
+  speedtest??
+
+other useful tools:
+  sdparm
+  nvme
+  iozone3
+  fio
+
