@@ -46,16 +46,21 @@ Example: $0 log-smart sda
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Valid commands are:
- - log-smart (Write current SMART data to logfile)
+ - info (shows info about the disk)
+ - ls (show entries in configdir)
+ - log (show logfile)
+ - edit-log (edit logfile file, for things like former usage or dmesg output)
+ - edit-location (edit location file)
+ - smart-log (Write current SMART data to logfile)
+ - smart-check-long (run smartctl -t long and wait until finished)
  - secure-erase (Uses hdparm to do a secure erase)
+ - burn-check-fast (secure erase and badblocks-check-empty)
+ - burn-check-full (secure erase and badblocks-check-full and smart-check-long)
  - badblocks-check-empty (use badblocks to verify  that harddisk is empty)
  - badblocks-single (use badblocks to write 00 and verify)
  - badblocks-full (use badblocks to 4 times write and verify)
  - full-trim (send trim command to empty SSD)
  - full-trim-verify (trim SSD and verify that empty)
- - edit-location (edit location file)
- - edit-log (edit logfile file, for things like former usage or dmesg output)
-
 EOF
 }
 
@@ -78,8 +83,33 @@ edit-file() {
 "${EDITOR:-vim}" "$LOGFILEDIR/$1"
 }
 
-log-smart(){
+smart-log(){
 smartctl -a "/dev/$DISK" > "$LOGFILEDIR/smart-$LOGDATE"
+}
+
+smart-wait(){
+OLD_SMART_PERCENTAGE=100
+## TODO Fix things so we don't need to have the first test
+while SMART_PERCENTAGE=$(smartctl -a "/dev/$DISK" | grep ' of test remaining.' | sed -e 's:%.*::' | tr -d '[:space:]')
+do
+	test "$SMART_PERCENTAGE" == "" && break
+	if test "$OLD_SMART_PERCENTAGE" -eq "$SMART_PERCENTAGE"
+	then
+		sleep 60
+	else
+		echo "${SMART_PERCENTAGE}% done @ $(date "+%Y%m%d-%H%M%S")"
+		OLD_SMART_PERCENTAGE=$SMART_PERCENTAGE
+	fi
+done
+echo "smart check finished at $(date "+%Y%m%d-%H%M%S")"
+
+}
+
+
+smart-check-long(){
+smartctl -t long "/dev/$DISK"
+smart-wait
+smart-log
 }
 
 secure-erase(){
@@ -94,8 +124,10 @@ else
 fi
 
 hdparm -I "/dev/$DISK" >> "$LOGFILEDIR/hdparm-$LOGDATE"
-if grep 'not frozen' "$LOGFILEDIR/hdparm-$LOGDATE"
+if grep 'not.*frozen' "$LOGFILEDIR/hdparm-$LOGDATE" > /dev/null
 then
+     echo disk not frozen, continue secure erase
+else
      echo disk still frozen, can\'t secure erase
      echo please see: https://ata.wiki.kernel.org/index.php/ATA_Secure_Erase
      echo 
@@ -114,7 +146,7 @@ echo
 
 time hdparm --user-master u --security-erase    Eins "/dev/$DISK"
 RETURN=$?
-if $RETURN -eq 0
+if test $RETURN -eq 0
   then 
        echo secure-erase finished sucessfully at "$(date +%Y%m%d-%H%M%S)" |
             tee -a "$LOGFILEDIR/secure-erase-$LOGDATE"
@@ -145,7 +177,7 @@ if test $# -eq 2
 then
      :
 else
-     echo "1 command and 2 disk only"
+     echo "1 command and 1 disk only"
      help
      exit 4
 fi
@@ -172,31 +204,55 @@ MODEL=${ID_MODEL}
 SERIAL=${ID_SERIAL_SHORT}
 SECUREERASE_TIME=${ID_ATA_FEATURE_SET_SECURITY_ERASE_UNIT_MIN}
 DISCARD=$(lsblk -nd -o DISC-ALN "/dev/$DISK" | grep -v ' 0')
-SIZE=$(lsblk -nd -o SIZE "/dev/$DISK")
+SIZE=$(lsblk -nd -o SIZE "/dev/$DISK" | tr -d " ")
 
 #DISKINFO="$DISK $ID_MODEL $ID_SERIAL_SHORT $SIZE"
 echo "disk info: $MODEL $SERIAL $SIZE"
 
-LOGFILEDIR=$LOGDIR/${MODEL}_${SERIAL}_${SIZE}/
+LOGFILEDIR=$LOGDIR${MODEL}_${SERIAL}_${SIZE}
 mkdir -p "$LOGFILEDIR" &> /dev/null
+
+echo "logs are in $LOGFILEDIR"
 
 
 case $1 in
+     info)
+	  ;;
+     ls)
+          ls -altr "$LOGFILEDIR/"
+	  ;;
+     log)
+          echo Log content:
+	  if test -f "$LOGFILEDIR/log"
+	  then
+		  cat "$LOGFILEDIR/log"
+	  else
+		  echo "$LOGFILEDIR/log" is empty
+	  fi
+          ;;
      edit-log)
           edit-file log
           ;;
      edit-location)
           edit-file location
           ;;
-     log-smart)
-          log-smart
+     smart-log)
+          smart-log
           ;;
+     smart-check-long)
+	  smart-check-long
+	  ;;
      secure-erase)
           secure-erase
           ;;
-     burn-check)
+     burn-check-fast)
           secure-erase
-          badblocks-check-empty
+          run-command badblocks-check-empty "badblocks -vv -t 00 /dev/$DISK"
+          ;;
+     burn-check-full)
+          secure-erase
+          run-command badblocks-check-full "badblocks -vv -w /dev/$DISK"
+	  smart-check-long
           ;;
      badblocks-check-empty)
           run-command badblocks-check-empty "badblocks -vv -t 00 /dev/$DISK"
@@ -229,7 +285,7 @@ case $1 in
      *)
           echo "subcommand $1 not found, please check"
           help
-          exit 1
+          #exit 1
           ;;
 esac
 

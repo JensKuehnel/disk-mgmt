@@ -1,4 +1,7 @@
 TODO:
+  avoid bad output of badblocks
+
+
   smartctl -t long and wait until finished
   burn-full: secure-erase, badblack-full, smartctl -t long 
   burn: secure-erase, badblack-once, smartctl -t long
@@ -6,9 +9,10 @@ TODO:
   burn-short: secure-erase, smartctl -t long
   check if needed tools are installed
   avoid eval
+  support sd-cards
 
 Ideas:
-  speedtest??
+  speedtest?? hdparm,fio
 
 other useful tools:
   sdparm
