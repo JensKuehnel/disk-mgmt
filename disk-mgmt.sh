@@ -182,7 +182,7 @@ else
      exit 4
 fi
 
-DISK=$2
+DISK=${2##/dev/}
 if test -b "/dev/$DISK"
 then
      echo "Managing $DISK"
