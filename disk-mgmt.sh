@@ -54,6 +54,7 @@ Valid commands are:
  - smart-log (Write current SMART data to logfile)
  - smart-check-long (run smartctl -t long and wait until finished)
  - secure-erase (Uses hdparm to do a secure erase)
+ - burn-check (secure erase and badblocks-check-single and smart-check-long)
  - burn-check-fast (secure erase and badblocks-check-empty)
  - burn-check-full (secure erase and badblocks-check-full and smart-check-long)
  - badblocks-check-empty (use badblocks to verify  that harddisk is empty)
@@ -249,10 +250,15 @@ case $1 in
           secure-erase
           run-command badblocks-check-empty "badblocks -vv -t 00 /dev/$DISK"
           ;;
+     burn-check)
+          secure-erase
+          run-command badblocks-check "badblocks -vv -w -t 00 /dev/$DISK"
+	     smart-check-long
+          ;;
      burn-check-full)
           secure-erase
           run-command badblocks-check-full "badblocks -vv -w /dev/$DISK"
-	  smart-check-long
+	     smart-check-long
           ;;
      badblocks-check-empty)
           run-command badblocks-check-empty "badblocks -vv -t 00 /dev/$DISK"
