@@ -34,6 +34,7 @@
 LOGDIR=/etc/disk-mgmt/
 LOGDATE=$(date +%Y%m%d-%H%M%S)
 
+export LANG=C
 
 help() {
 cat << EOF 
@@ -205,7 +206,7 @@ MODEL=${ID_MODEL}
 SERIAL=${ID_SERIAL_SHORT}
 SECUREERASE_TIME=${ID_ATA_FEATURE_SET_SECURITY_ERASE_UNIT_MIN}
 DISCARD=$(lsblk -nd -o DISC-ALN "/dev/$DISK" | grep -v ' 0')
-SIZE=$(lsblk -nd -o SIZE "/dev/$DISK" | tr -d " ")
+SIZE=$(lsblk -nd -o SIZE "/dev/$DISK" | tr -d " " | tr , .)
 
 #DISKINFO="$DISK $ID_MODEL $ID_SERIAL_SHORT $SIZE"
 echo "disk info: $MODEL $SERIAL $SIZE"
