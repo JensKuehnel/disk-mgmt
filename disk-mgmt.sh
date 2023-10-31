@@ -61,6 +61,8 @@ Valid commands are:
  - badblocks-check-empty (use badblocks to verify  that harddisk is empty)
  - badblocks-single (use badblocks to write 00 and verify)
  - badblocks-full (use badblocks to 4 times write and verify)
+ - badblocks-single-smart (use badblocks to write 00 and verify)
+ - badblocks-full-smart (use badblocks to 4 times write and verify)
  - full-trim (send trim command to empty SSD)
  - full-trim-verify (trim SSD and verify that empty)
 EOF
@@ -119,7 +121,7 @@ if test "$SECUREERASE_TIME"
 then
      :
 else
-     echo secure erase not supported on disk
+     echo secure erase not supported on disk | tee -a "$LOGFILEDIR/hdparm-$LOGDATE"
      echo 
      exit 5
 
@@ -128,9 +130,9 @@ fi
 hdparm -I "/dev/$DISK" >> "$LOGFILEDIR/hdparm-$LOGDATE"
 if grep 'not.*frozen' "$LOGFILEDIR/hdparm-$LOGDATE" > /dev/null
 then
-     echo disk not frozen, continue secure erase
+     echo disk not frozen, continue secure eraseæ | tee -a "$LOGFILEDIR/hdparm-$LOGDATE"
 else
-     echo disk still frozen, can\'t secure erase
+     echo disk still frozen, can\'t secure erase | tee -a "$LOGFILEDIR/hdparm-$LOGDATE"
      echo please see: https://ata.wiki.kernel.org/index.php/ATA_Secure_Erase
      echo 
      exit 6
@@ -145,13 +147,34 @@ echo start time is: "$LOGDATE"
 echo
 
      hdparm --user-master u --security-set-pass Eins "/dev/$DISK"
-
+RUNTIME=$(date +%s)
 time hdparm --user-master u --security-erase    Eins "/dev/$DISK"
 RETURN=$?
+RUNTIME=$(( $(date +%s) - $RUNTIME))
+
+# sometimes Password are not delete after secure erase 
+# (all Western Digital it apears)
+
+hdparm -I "/dev/$DISK" >> "$LOGFILEDIR/hdparm-$LOGDATE-after-secureerase"
+if grep 'not.*enabled' "$LOGFILEDIR/hdparm-$LOGDATE-after-secureerase" > /dev/null
+then
+     echo disk unlocked, finished secure erase | tee -a $LOGFILEDIR/hdparm-$LOGDATE
+else
+     echo disk still locked, if not a WD please open bug | tee -a $LOGFILEDIR/hdparm-$LOGDATE
+     hdparm --user-master u --security-disable Eins "/dev/$DISK"
+     echo 
+fi
+
 if test $RETURN -eq 0
   then 
-       echo secure-erase finished sucessfully at "$(date +%Y%m%d-%H%M%S)" |
-            tee -a "$LOGFILEDIR/secure-erase-$LOGDATE"
+       if test $RUNTIME -lt 150
+       then
+	       echo secure-erase finished very fast with runtime $RUNTIME s at "$(date +%Y%m%d-%H%M%S)" |
+	               tee -a "$LOGFILEDIR/secure-erase-$LOGDATE"
+       else
+	       echo secure-erase finished sucessfully at "$(date +%Y%m%d-%H%M%S)" |
+		       tee -a "$LOGFILEDIR/secure-erase-$LOGDATE"
+       fi
   else
        echo secure-erase finished with error $RETURN at "$(date +%Y%m%d-%H%M%S)" |
             tee -a "$LOGFILEDIR/secure-erase-$LOGDATE"
@@ -269,6 +292,14 @@ case $1 in
           ;;
      badblocks-full)
           run-command badblocks-full "badblocks -b 4096 -vv -w /dev/$DISK"
+          ;;
+     badblocks-single-smart)
+          run-command badblocks-single "badblocks -b 4096 -vv -w -t 00 /dev/$DISK"
+	  smart-check-long
+          ;;
+     badblocks-full-smart)
+          run-command badblocks-full "badblocks -b 4096 -vv -w /dev/$DISK"
+	  smart-check-long
           ;;
      full-trim)
 	  if test "$DISCARD"
