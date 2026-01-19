@@ -272,33 +272,33 @@ case $1 in
           ;;
      burn-check-fast)
           secure-erase
-          run-command badblocks-check-empty "badblocks -b 4096 -vv -t 00 /dev/$DISK"
+          run-command badblocks-check-empty "badblocks -e 10 -b 4096 -vv -t 00 /dev/$DISK"
           ;;
      burn-check)
           secure-erase
-          run-command badblocks-check "badblocks -b 4096 -vv -w -t 00 /dev/$DISK"
+          run-command badblocks-check "badblocks -e 10 -b 4096 -vv -w -t 00 /dev/$DISK"
 	     smart-check-long
           ;;
      burn-check-full)
           secure-erase
-          run-command badblocks-check-full "badblocks -b 4096 -vv -w /dev/$DISK"
+          run-command badblocks-check-full "badblocks -e 10 -b 4096 -vv -w /dev/$DISK"
 	     smart-check-long
           ;;
      badblocks-check-empty)
-          run-command badblocks-check-empty "badblocks -b 4096 -vv -t 00 /dev/$DISK"
+          run-command badblocks-check-empty "badblocks -e 10 -b 4096 -vv -t 00 /dev/$DISK"
           ;;
      badblocks-single)
-          run-command badblocks-single "badblocks -b 4096 -vv -w -t 00 /dev/$DISK"
+          run-command badblocks-single "badblocks -e 10 -b 4096 -vv -w -t 00 /dev/$DISK"
           ;;
      badblocks-full)
-          run-command badblocks-full "badblocks -b 4096 -vv -w /dev/$DISK"
+          run-command badblocks-full "badblocks -e 10 -b 4096 -vv -w /dev/$DISK"
           ;;
      badblocks-single-smart)
-          run-command badblocks-single "badblocks -b 4096 -vv -w -t 00 /dev/$DISK"
+          run-command badblocks-single "badblocks -e 10 -b 4096 -vv -w -t 00 /dev/$DISK"
 	  smart-check-long
           ;;
      badblocks-full-smart)
-          run-command badblocks-full "badblocks -b 4096 -vv -w /dev/$DISK"
+          run-command badblocks-full "badblocks -e 10 -b 4096 -vv -w /dev/$DISK"
 	  smart-check-long
           ;;
      full-trim)
@@ -314,7 +314,7 @@ case $1 in
 	  if test "$DISCARD"
 	  then
 		  run-command full-trim-verify "blkdiscard /dev/$DISK"
-		  run-command full-trim-verify "badblocks -b 4096 -vv -t 00 /dev/$DISK"
+		  run-command full-trim-verify "badblocks -e 10 -b 4096 -vv -t 00 /dev/$DISK"
 	  else
 		  echo disk does not support discard
 		  exit 7
