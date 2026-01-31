@@ -58,6 +58,7 @@ Valid commands are:
  - burn-check (secure erase and badblocks-check-single and smart-check-long)
  - burn-check-fast (secure erase and badblocks-check-empty)
  - burn-check-full (secure erase and badblocks-check-full and smart-check-long)
+ - badblocks-readcheck (use badblocks to read the complete disk, like smart-long)
  - badblocks-check-empty (use badblocks to verify  that harddisk is empty)
  - badblocks-single (use badblocks to write 00 and verify)
  - badblocks-full (use badblocks to 4 times write and verify)
@@ -150,7 +151,7 @@ echo
 RUNTIME=$(date +%s)
 time hdparm --user-master u --security-erase    Eins "/dev/$DISK"
 RETURN=$?
-RUNTIME=$(( $(date +%s) - $RUNTIME))
+RUNTIME=$(( $(date +%s) - RUNTIME))
 
 # sometimes Password are not delete after secure erase 
 # (all Western Digital it apears)
@@ -158,9 +159,9 @@ RUNTIME=$(( $(date +%s) - $RUNTIME))
 hdparm -I "/dev/$DISK" >> "$LOGFILEDIR/hdparm-$LOGDATE-after-secureerase"
 if grep 'not.*enabled' "$LOGFILEDIR/hdparm-$LOGDATE-after-secureerase" > /dev/null
 then
-     echo disk unlocked, finished secure erase | tee -a $LOGFILEDIR/hdparm-$LOGDATE
+     echo disk unlocked, finished secure erase | tee -a "$LOGFILEDIR/hdparm-$LOGDATE"
 else
-     echo disk still locked, if not a WD please open bug | tee -a $LOGFILEDIR/hdparm-$LOGDATE
+     echo disk still locked, if not a WD please open bug | tee -a "$LOGFILEDIR/hdparm-$LOGDATE"
      hdparm --user-master u --security-disable Eins "/dev/$DISK"
      echo 
 fi
@@ -286,6 +287,9 @@ case $1 in
           ;;
      badblocks-check-empty)
           run-command badblocks-check-empty "badblocks -e 10 -b 4096 -vv -t 00 /dev/$DISK"
+          ;;
+     badblocks-readcheck)
+          run-command badblocks-readcheck "badblocks -b 4096 -vv /dev/$DISK"
           ;;
      badblocks-single)
           run-command badblocks-single "badblocks -e 10 -b 4096 -vv -w -t 00 /dev/$DISK"
